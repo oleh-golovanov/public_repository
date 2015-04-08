@@ -6,6 +6,8 @@ import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Result;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.helpers.collection.MapUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
@@ -14,6 +16,7 @@ import java.util.concurrent.atomic.AtomicLong;
  * Created by Oleh_Golovanov on 4/8/2015 for ADI-COM-trunk
  */
 public class UserService {
+    private static final Logger LOG = LoggerFactory.getLogger(UserService.class);
     public static final String EMAIL = "email";
     public static final String FIRST_NAME = "firstName";
     public static final String SECOND_NAME = "secondName";
@@ -32,37 +35,55 @@ public class UserService {
     }
 
     public User findUser(String email){
-        Result dbResult = graphDatabaseService.execute(findUserQuery());
+        LOG.debug("findUser service method has been invoked");
         User result = null;
-        if(dbResult.hasNext()){
-            Map<String, Object> mapResult = dbResult.next();
-            Node user = (Node)mapResult.get("u");
-            if(user != null){
-                String firstName = (String)user.getProperty(FIRST_NAME);
-                String secondName = (String)user.getProperty(SECOND_NAME);
-                String nick = (String)user.getProperty(NICK);
-                Long id = Long.parseLong(String.valueOf(user.getProperty(ID)));
-                result = new User(firstName,secondName,email,nick);
-                result.setId(id);
-            }
+        try {
+            result = findUserInternal(email);
+        } catch (Exception e){
+            LOG.error("Exception has been thrown ", e);
         }
         return result;
     }
 
+    private User findUserInternal(String email) {
+        User result = null;
+        try(Transaction tx = graphDatabaseService.beginTx()) {
+            Result dbResult = graphDatabaseService.execute(findUserQuery(), MapUtil.map(EMAIL, email));
+            if(dbResult.hasNext()){
+                Map<String, Object> mapResult = dbResult.next();
+                LOG.debug("mapResult {}", mapResult);
+                Node user = (Node)mapResult.get("u");
+                LOG.debug("Node u {}", user);
+                if(user != null){
+                    String firstName = (String)user.getProperty(FIRST_NAME);
+                    String secondName = (String)user.getProperty(SECOND_NAME);
+                    String nick = (String)user.getProperty(NICK);
+                    LOG.debug("Id = {}", user.getProperty(ID));
+                    Long id = Long.parseLong(String.valueOf(user.getProperty(ID)));
+                    result = new User(firstName,secondName,email,nick);
+                    result.setId(id);
+                }
+            } else {
+                LOG.debug("No user found by {}", email);
+            }
+            tx.success();
+        }
 
-    public boolean deleteUser(String email){
-        boolean deleted = false;
+        return result;
+    }
+
+
+    public void deleteUser(String email){
         final Map<String, Object> params = MapUtil.map(EMAIL, email);
         try (Transaction tx = graphDatabaseService.beginTx();) {
             graphDatabaseService.beginTx();
             graphDatabaseService.execute(deleteUserQuery(), params);
             tx.success();
-            deleted = true;
         } catch (Exception e){
             //TODO
         }
 
-        return deleted;
+
     }
 
     public boolean checkIsUserExists(String email){
