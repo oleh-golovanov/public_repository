@@ -3,6 +3,8 @@ package com.adidas.poc.neo4jext.resource;
 import com.adidas.poc.neo4jext.domain.User;
 import com.adidas.poc.neo4jext.service.UserService;
 import org.neo4j.graphdb.GraphDatabaseService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.ws.rs.*;
 import javax.ws.rs.core.Context;
@@ -15,6 +17,8 @@ import java.nio.charset.Charset;
  */
 @Path("/user")
 public class UserResource {
+
+    private static  final Logger LOG = LoggerFactory.getLogger(UserResource.class);
 
     private UserService userService;
 
@@ -41,7 +45,7 @@ public class UserResource {
     @Produces(MediaType.TEXT_PLAIN)
     @Path("/check/{email}")
     public Response userExists(@PathParam("email") String email) {
-        String respMessage = "User with specified email " + (userService.checkIsUserExists(email) ? "already " : "doesn't ") + " exists";
+        String respMessage = String.format("User with email %s %s exists", email, (userService.checkIsUserExists(email) ? "already " : "doesn't "));
         return Response.status(Response.Status.OK).entity(respMessage.getBytes(Charset.forName("UTF-8"))).build();
     }
 
@@ -49,8 +53,9 @@ public class UserResource {
     @Produces(MediaType.TEXT_PLAIN)
     @Path("/{email}")
     public Response findUser(@PathParam("email") String email) {
+        LOG.debug("findUser rest method has been invoked");
         User user = userService.findUser(email);
-        String respMessage = user == null ? "User with specified email doesn't exists" : user.toString();
+        String respMessage = user == null ? String.format("User with email %s doesn't exists", email) : user.toString();
         return Response.status(Response.Status.OK).entity(respMessage.getBytes(Charset.forName("UTF-8"))).build();
     }
 
@@ -58,8 +63,11 @@ public class UserResource {
     @Produces(MediaType.TEXT_PLAIN)
     @Path("/{email}")
     public Response deleteUser(@PathParam("email") String email) {
-        boolean deleted = userService.deleteUser(email);
-        String respMessage = String.format("User with specified email has %sbeen deleted", deleted ? "": "not ");
+        boolean userExists = userService.checkIsUserExists(email);
+        if(userExists){
+            userService.deleteUser(email);
+        }
+        String respMessage = String.format("User with email %s %s", email, !userExists ? "doesn't exist": "has been deleted");
         return Response.status(Response.Status.OK).entity(respMessage.getBytes(Charset.forName("UTF-8"))).build();
     }
 
