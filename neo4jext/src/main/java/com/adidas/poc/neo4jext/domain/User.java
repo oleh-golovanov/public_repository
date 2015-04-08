@@ -11,6 +11,13 @@ public class User {
     private String email;
     private String nick;
 
+    public User(String firstName, String secondName, String email, String nick) {
+        this.firstName = firstName;
+        this.secondName = secondName;
+        this.email = email;
+        this.nick = nick;
+    }
+
     public long getId() {
         return id;
     }
@@ -49,5 +56,16 @@ public class User {
 
     public void setNick(String nick) {
         this.nick = nick;
+    }
+
+    @Override
+    public String toString() {
+        return "User{" +
+                "id=" + id +
+                ", firstName='" + firstName + '\'' +
+                ", secondName='" + secondName + '\'' +
+                ", email='" + email + '\'' +
+                ", nick='" + nick + '\'' +
+                '}';
     }
 }
