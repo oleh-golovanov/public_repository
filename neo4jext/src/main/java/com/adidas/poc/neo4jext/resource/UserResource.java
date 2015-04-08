@@ -11,6 +11,7 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import java.nio.charset.Charset;
+import java.util.Collection;
 
 /**
  * Created by Oleh_Golovanov on 4/7/2015 for ADI-COM-trunk
@@ -57,6 +58,19 @@ public class UserResource {
         User user = userService.findUser(email);
         String respMessage = user == null ? String.format("User with email %s doesn't exists", email) : user.toString();
         return Response.status(Response.Status.OK).entity(respMessage.getBytes(Charset.forName("UTF-8"))).build();
+    }
+
+    @GET
+    @Produces(MediaType.TEXT_PLAIN)
+    @Path("/list")
+    public Response findAllUsers() {
+        LOG.debug("findAllUsers rest method has been invoked");
+        Collection<User> users = userService.findAllUsers();
+        StringBuilder respMessage = new StringBuilder();
+        for (User u: users){
+            respMessage.append(u.toString()).append("\n");
+        }
+        return Response.status(Response.Status.OK).entity(respMessage.toString().getBytes(Charset.forName("UTF-8"))).build();
     }
 
     @DELETE

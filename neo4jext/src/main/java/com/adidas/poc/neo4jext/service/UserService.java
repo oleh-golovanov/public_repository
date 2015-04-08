@@ -1,14 +1,14 @@
 package com.adidas.poc.neo4jext.service;
 
 import com.adidas.poc.neo4jext.domain.User;
-import org.neo4j.graphdb.GraphDatabaseService;
-import org.neo4j.graphdb.Node;
-import org.neo4j.graphdb.Result;
-import org.neo4j.graphdb.Transaction;
+import org.neo4j.graphdb.*;
 import org.neo4j.helpers.collection.MapUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -22,6 +22,7 @@ public class UserService {
     public static final String SECOND_NAME = "secondName";
     public static final String NICK = "nick";
     public static final String ID = "id";
+    public static final String USER_IDENTIFIER = "u";
     private final GraphDatabaseService graphDatabaseService;
     private AtomicLong idHolder;
 
@@ -36,13 +37,28 @@ public class UserService {
 
     public User findUser(String email){
         LOG.debug("findUser service method has been invoked");
-        User result = null;
-        try {
-            result = findUserInternal(email);
-        } catch (Exception e){
-            LOG.error("Exception has been thrown ", e);
+        return findUserInternal(email);
+    }
+
+    public Collection<User> findAllUsers(){
+        LOG.debug("findAllUsers service method has been invoked");
+        return findAllUsersInternal();
+    }
+
+    private Collection<User> findAllUsersInternal() {
+        Collection<User> list = new ArrayList<>();
+        try(Transaction tx = graphDatabaseService.beginTx(); Result dbResult = graphDatabaseService.execute(findAllUsersQuery());) {
+            while(dbResult.hasNext()){
+                Map<String, Object> mapResult = dbResult.next();
+                LOG.debug("mapResult {}", mapResult);
+                Node user = (Node)mapResult.get(USER_IDENTIFIER);
+                if(user != null){
+                    list.add(mapNodeToUser(user));
+                }
+            }
+            tx.success();
         }
-        return result;
+        return list;
     }
 
     private User findUserInternal(String email) {
@@ -52,16 +68,9 @@ public class UserService {
             if(dbResult.hasNext()){
                 Map<String, Object> mapResult = dbResult.next();
                 LOG.debug("mapResult {}", mapResult);
-                Node user = (Node)mapResult.get("u");
-                LOG.debug("Node u {}", user);
+                Node user = (Node)mapResult.get(USER_IDENTIFIER);
                 if(user != null){
-                    String firstName = (String)user.getProperty(FIRST_NAME);
-                    String secondName = (String)user.getProperty(SECOND_NAME);
-                    String nick = (String)user.getProperty(NICK);
-                    LOG.debug("Id = {}", user.getProperty(ID));
-                    Long id = Long.parseLong(String.valueOf(user.getProperty(ID)));
-                    result = new User(firstName,secondName,email,nick);
-                    result.setId(id);
+                    result = mapNodeToUser(user);
                 }
             } else {
                 LOG.debug("No user found by {}", email);
@@ -69,6 +78,17 @@ public class UserService {
             tx.success();
         }
 
+        return result;
+    }
+
+    private User mapNodeToUser(Node user) {
+        String email = (String)user.getProperty(EMAIL);
+        String firstName = (String)user.getProperty(FIRST_NAME);
+        String secondName = (String)user.getProperty(SECOND_NAME);
+        String nick = (String)user.getProperty(NICK);
+        Long id = Long.parseLong(String.valueOf(user.getProperty(ID)));
+        User result  = new User(firstName,secondName,email,nick);
+        result.setId(id);
         return result;
     }
 
@@ -150,6 +170,11 @@ public class UserService {
     private String findUserQuery() {
         return "MATCH (u:USER {email: {email}}) RETURN u";
     }
+
+    private String findAllUsersQuery() {
+        return "MATCH (u:USER) RETURN u";
+    }
+
     private String deleteUserQuery() {
         return "MATCH (u:USER {email: {email}}) DELETE u";
     }

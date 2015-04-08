@@ -12,10 +12,14 @@ public class User {
     private String nick;
 
     public User(String firstName, String secondName, String email, String nick) {
+        this();
         this.firstName = firstName;
         this.secondName = secondName;
         this.email = email;
         this.nick = nick;
+    }
+
+    public User() {
     }
 
     public long getId() {
