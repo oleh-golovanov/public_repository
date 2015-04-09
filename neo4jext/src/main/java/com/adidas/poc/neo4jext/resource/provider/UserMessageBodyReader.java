@@ -37,7 +37,7 @@ public class UserMessageBodyReader implements MessageBodyReader<User> {
     @Override
     public User readFrom(Class<User> aClass, Type type, Annotation[] annotations, MediaType mediaType, MultivaluedMap<String, String> multivaluedMap, InputStream inputStream) throws IOException, WebApplicationException {
         LOG.debug("Message body reader readFrom has been invoked: class {}, type {}, annotations {}, mediaType {}, multyValuedMap {}", aClass, type, annotations, mediaType, multivaluedMap);
-        User user = null;
+        User user;
         try {
             user = objectMapper.getJsonFactory().createJsonParser(inputStream).readValueAs(aClass);
         } catch (Exception e) {

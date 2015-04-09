@@ -1,14 +1,16 @@
 package com.adidas.poc.neo4jext.service;
 
 import com.adidas.poc.neo4jext.domain.User;
-import org.neo4j.graphdb.*;
+import org.neo4j.graphdb.GraphDatabaseService;
+import org.neo4j.graphdb.Node;
+import org.neo4j.graphdb.Result;
+import org.neo4j.graphdb.Transaction;
 import org.neo4j.helpers.collection.MapUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -31,28 +33,28 @@ public class UserService {
         initIdHolder();
     }
 
-    public User createUser(User newUser){
+    public User createUser(User newUser) {
         return createNewUser(newUser);
     }
 
-    public User findUser(String email){
+    public User findUser(String email) {
         LOG.debug("findUser service method has been invoked");
         return findUserInternal(email);
     }
 
-    public Collection<User> findAllUsers(){
+    public Collection<User> findAllUsers() {
         LOG.debug("findAllUsers service method has been invoked");
         return findAllUsersInternal();
     }
 
     private Collection<User> findAllUsersInternal() {
         Collection<User> list = new ArrayList<>();
-        try(Transaction tx = graphDatabaseService.beginTx(); Result dbResult = graphDatabaseService.execute(findAllUsersQuery());) {
-            while(dbResult.hasNext()){
+        try (Transaction tx = graphDatabaseService.beginTx(); Result dbResult = graphDatabaseService.execute(findAllUsersQuery())) {
+            while (dbResult.hasNext()) {
                 Map<String, Object> mapResult = dbResult.next();
                 LOG.debug("mapResult {}", mapResult);
-                Node user = (Node)mapResult.get(USER_IDENTIFIER);
-                if(user != null){
+                Node user = (Node) mapResult.get(USER_IDENTIFIER);
+                if (user != null) {
                     list.add(mapNodeToUser(user));
                 }
             }
@@ -63,13 +65,13 @@ public class UserService {
 
     private User findUserInternal(String email) {
         User result = null;
-        try(Transaction tx = graphDatabaseService.beginTx()) {
+        try (Transaction tx = graphDatabaseService.beginTx()) {
             Result dbResult = graphDatabaseService.execute(findUserQuery(), MapUtil.map(EMAIL, email));
-            if(dbResult.hasNext()){
+            if (dbResult.hasNext()) {
                 Map<String, Object> mapResult = dbResult.next();
                 LOG.debug("mapResult {}", mapResult);
-                Node user = (Node)mapResult.get(USER_IDENTIFIER);
-                if(user != null){
+                Node user = (Node) mapResult.get(USER_IDENTIFIER);
+                if (user != null) {
                     result = mapNodeToUser(user);
                 }
             } else {
@@ -82,34 +84,34 @@ public class UserService {
     }
 
     private User mapNodeToUser(Node user) {
-        String email = (String)user.getProperty(EMAIL);
-        String firstName = (String)user.getProperty(FIRST_NAME);
-        String secondName = (String)user.getProperty(SECOND_NAME);
-        String nick = (String)user.getProperty(NICK);
-        Long id = Long.parseLong(String.valueOf(user.getProperty(ID)));
-        User result  = new User(firstName,secondName,email,nick);
+        String email = (String) user.getProperty(EMAIL);
+        String firstName = (String) user.getProperty(FIRST_NAME);
+        String secondName = (String) user.getProperty(SECOND_NAME);
+        String nick = (String) user.getProperty(NICK);
+        long id = Long.parseLong(String.valueOf(user.getProperty(ID)));
+        User result = new User(firstName, secondName, email, nick);
         result.setId(id);
         return result;
     }
 
 
-    public void deleteUser(String email){
+    public void deleteUser(String email) {
         final Map<String, Object> params = MapUtil.map(EMAIL, email);
-        try (Transaction tx = graphDatabaseService.beginTx();) {
+        try (Transaction tx = graphDatabaseService.beginTx()) {
             graphDatabaseService.beginTx();
             graphDatabaseService.execute(deleteUserQuery(), params);
             tx.success();
-        } catch (Exception e){
+        } catch (Exception e) {
             //TODO
         }
 
 
     }
 
-    public boolean checkIsUserExists(String email){
+    public boolean checkIsUserExists(String email) {
         boolean result;
         final Map<String, Object> params = MapUtil.map(EMAIL, email);
-        try (Transaction tx = graphDatabaseService.beginTx();) {
+        try (Transaction tx = graphDatabaseService.beginTx()) {
             graphDatabaseService.beginTx();
             Result r = graphDatabaseService.execute(findUserByEmailQuery(), params);
             result = r.hasNext();
@@ -124,7 +126,7 @@ public class UserService {
         newUser.setId(generateUniqueId());
         User result = newUser;
         final Map<String, Object> params = MapUtil.map(FIRST_NAME, result.getFirstName(), SECOND_NAME, result.getSecondName(), EMAIL, result.getEmail(), NICK, result.getNick(), ID, result.getId());
-        try (Transaction tx = graphDatabaseService.beginTx();) {
+        try (Transaction tx = graphDatabaseService.beginTx()) {
             graphDatabaseService.beginTx();
             graphDatabaseService.execute(createQuery(), params);
             tx.success();
@@ -141,10 +143,10 @@ public class UserService {
     private long getMaxID() {
         Result result = graphDatabaseService.execute(getMaxIdQuery());
         long userCount = 0l;
-        if(result.hasNext()){
+        if (result.hasNext()) {
             Map<String, Object> mapResult = result.next();
             Object count = mapResult.get("count");
-            if(count != null){
+            if (count != null) {
                 userCount = Long.valueOf(String.valueOf(count));
             }
         }
@@ -167,6 +169,7 @@ public class UserService {
     private String getMaxIdQuery() {
         return "MATCH (u:USER) RETURN count(u) as count";
     }
+
     private String findUserQuery() {
         return "MATCH (u:USER {email: {email}}) RETURN u";
     }

@@ -23,7 +23,7 @@ import java.lang.reflect.Type;
 //@Provider
 @Produces(MediaType.APPLICATION_JSON)
 public class UserMessageBodyWriter implements MessageBodyWriter<User> {
-    private static final Logger LOG = LoggerFactory.getLogger(UserMessageBodyReader.class);
+    private static final Logger LOG = LoggerFactory.getLogger(UserMessageBodyWriter.class);
     private ObjectMapper objectMapper;
 
     public UserMessageBodyWriter() {
@@ -34,7 +34,7 @@ public class UserMessageBodyWriter implements MessageBodyWriter<User> {
     @Override
     public boolean isWriteable(Class<?> aClass, Type type, Annotation[] annotations, MediaType mediaType) {
         boolean result = aClass.equals(User.class);
-        LOG.debug("isWriteAble called {}", result);
+        LOG.debug("isWriteAble called {}", Boolean.valueOf(result));
         return result;
     }
 

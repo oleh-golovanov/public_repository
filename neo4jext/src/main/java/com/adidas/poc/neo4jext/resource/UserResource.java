@@ -11,7 +11,6 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import java.io.Serializable;
-import java.nio.charset.Charset;
 import java.util.Collection;
 
 /**
@@ -22,7 +21,7 @@ import java.util.Collection;
 @Consumes(MediaType.APPLICATION_JSON)
 public class UserResource {
 
-    private static  final Logger LOG = LoggerFactory.getLogger(UserResource.class);
+    private static final Logger LOG = LoggerFactory.getLogger(UserResource.class);
 
     private UserService userService;
 
@@ -35,12 +34,15 @@ public class UserResource {
     public Response create(User user) {
         LOG.debug("create rest method has been invoked with incomming parameter {}", user);
         User createdUser = null;
-        String email = user.getEmail();
-        if (user != null && email != null && !userService.checkIsUserExists(email)) {
-            createdUser = userService.createUser(user);
+        String email = null;
+        if (user != null) {
+            email = user.getEmail();
+            if(email != null && !userService.checkIsUserExists(email))
+                createdUser = userService.createUser(user);
         }
         Serializable rEntity = createdUser == null ? String.format("User with email %s already exists", email) : createdUser;
         return Response.ok(rEntity).build();
+
     }
 
     @GET
@@ -64,10 +66,6 @@ public class UserResource {
     public Response findAllUsers() {
         LOG.debug("findAllUsers rest method has been invoked");
         Collection<User> users = userService.findAllUsers();
-        StringBuilder respMessage = new StringBuilder();
-        for (User u: users){
-            respMessage.append(u.toString()).append("\n");
-        }
         return Response.ok(users).build();
     }
 
@@ -75,10 +73,10 @@ public class UserResource {
     @Path("/{email}")
     public Response deleteUser(@PathParam("email") String email) {
         boolean userExists = userService.checkIsUserExists(email);
-        if(userExists){
+        if (userExists) {
             userService.deleteUser(email);
         }
-        String respMessage = String.format("User with email %s %s", email, !userExists ? "doesn't exist": "has been deleted");
+        String respMessage = String.format("User with email %s %s", email, !userExists ? "doesn't exist" : "has been deleted");
         return Response.ok(respMessage).build();
     }
 

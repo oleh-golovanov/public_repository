@@ -1,8 +1,6 @@
 package com.adidas.poc.neo4jext.domain;
 
 
-import javax.xml.bind.annotation.XmlAccessType;
-import javax.xml.bind.annotation.XmlAccessorType;
 import javax.xml.bind.annotation.XmlRootElement;
 import java.io.Serializable;
 
@@ -12,7 +10,7 @@ import java.io.Serializable;
 //@JsonXML
 @XmlRootElement
 //@XmlAccessorType(XmlAccessType.FIELD)
-public class User implements Serializable{
+public class User implements Serializable {
     private long id;
     private String firstName;
     private String secondName;
@@ -43,6 +41,7 @@ public class User implements Serializable{
         return firstName;
     }
 
+    @SuppressWarnings("unused")
     public void setFirstName(String firstName) {
         this.firstName = firstName;
     }
@@ -51,6 +50,7 @@ public class User implements Serializable{
         return secondName;
     }
 
+    @SuppressWarnings("unused")
     public void setSecondName(String secondName) {
         this.secondName = secondName;
     }
@@ -59,6 +59,7 @@ public class User implements Serializable{
         return email;
     }
 
+    @SuppressWarnings("unused")
     public void setEmail(String email) {
         this.email = email;
     }
@@ -67,6 +68,7 @@ public class User implements Serializable{
         return nick;
     }
 
+    @SuppressWarnings("unused")
     public void setNick(String nick) {
         this.nick = nick;
     }
