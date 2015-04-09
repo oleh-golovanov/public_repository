@@ -1,4 +1,4 @@
-package com.adidas.poc.neo4jext.service;
+package com.adidas.poc.neo4jext.dao;
 
 import java.util.Collection;
 

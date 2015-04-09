@@ -1,4 +1,4 @@
-package com.adidas.poc.neo4jext.service;
+package com.adidas.poc.neo4jext.dao;
 
 import com.adidas.poc.neo4jext.domain.PocLabel;
 import com.adidas.poc.neo4jext.domain.User;

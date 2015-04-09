@@ -1,5 +1,6 @@
 package com.adidas.poc.neo4jext.service;
 
+import com.adidas.poc.neo4jext.dao.UserDao;
 import com.adidas.poc.neo4jext.domain.User;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Transaction;
