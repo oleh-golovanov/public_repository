@@ -18,6 +18,7 @@ public class User implements Serializable {
     private String email;
     private String nick;
 
+    @SuppressWarnings("unused")
     public User(String firstName, String secondName, String email, String nick) {
         this();
         this.firstName = firstName;

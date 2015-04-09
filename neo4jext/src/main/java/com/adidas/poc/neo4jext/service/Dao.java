@@ -7,7 +7,6 @@ import java.util.Collection;
  */
 public interface Dao<I, T> {
     T create(T input);
-    T update(T input);
     T delete(I id);
     T find(I id);
     Collection<T> findAll();

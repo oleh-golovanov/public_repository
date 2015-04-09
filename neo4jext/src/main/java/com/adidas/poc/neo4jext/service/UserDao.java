@@ -36,11 +36,6 @@ public class UserDao implements Dao<String, User> {
     }
 
     @Override
-    public User update(User input) {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
     public User delete(String email) {
         Node node = findUserNodeByEmail(email);
         User deleted = mapNodeToUser(node);

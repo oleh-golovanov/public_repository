@@ -33,7 +33,7 @@ public class UserResource {
 
     @POST
     public Response create(User user) {
-        LOG.debug("create rest method has been invoked with incomming parameter {}", user);
+        LOG.debug("create rest method has been invoked with incoming parameter {}", user);
         User createdUser = null;
         String email = null;
         if (user != null) {
@@ -50,6 +50,7 @@ public class UserResource {
     @GET
     @Path("/check/{email}")
     public Response userExists(@PathParam("email") String email) {
+        LOG.debug("userExists rest method has been invoked");
         String respMessage = String.format("User with email %s %s exists", email, (userService.checkIsUserExists(email) ? "already " : "doesn't "));
         return Response.ok(respMessage).build();
     }

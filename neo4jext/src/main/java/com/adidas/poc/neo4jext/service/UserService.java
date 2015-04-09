@@ -6,7 +6,6 @@ import org.neo4j.graphdb.Transaction;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-
 import java.util.Collection;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -23,11 +22,11 @@ public class UserService {
         LOG.debug("UserService constructor has been triggered");
         this.graphDatabaseService = graphDatabaseService;
         LOG.debug("Starting to init userDao");
-            userDao = new UserDao(this.graphDatabaseService);
+        userDao = new UserDao(this.graphDatabaseService);
         LOG.debug("Starting to init id holder");
         try {
             initIdHolder();
-        } catch (Exception e){
+        } catch (Exception e) {
             LOG.error("Error", e);
         }
         LOG.debug("Finish to init id holder {}", idHolder);
@@ -85,17 +84,12 @@ public class UserService {
     }
 
     private void initIdHolder() {
-        try {
-            idHolder = new AtomicLong(getMaxID());
-        } catch (Exception e){
-            LOG.error("Error", e);
-        }
+        idHolder = new AtomicLong(getMaxID());
     }
 
     private long getMaxID() {
         return findAllUsers().size();
     }
-
 
     private long generateUniqueId() {
         return idHolder.incrementAndGet();
