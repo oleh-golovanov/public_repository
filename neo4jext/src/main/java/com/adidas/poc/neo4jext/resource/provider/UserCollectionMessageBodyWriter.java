@@ -17,36 +17,37 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Type;
+import java.util.Collection;
 
 /**
  * Created by Oleh_Golovanov on 4/8/2015 for ADI-COM-trunk
  */
 @Provider
 @Produces(MediaType.APPLICATION_JSON)
-public class UserMessageBodyWriter implements MessageBodyWriter<User> {
-    private static final Logger LOG = LoggerFactory.getLogger(UserMessageBodyWriter.class);
+public class UserCollectionMessageBodyWriter implements MessageBodyWriter<Collection<?>> {
+    private static final Logger LOG = LoggerFactory.getLogger(UserCollectionMessageBodyWriter.class);
     private ObjectMapper objectMapper;
 
-    public UserMessageBodyWriter() {
+    public UserCollectionMessageBodyWriter() {
         this.objectMapper = new ObjectMapper();
         LOG.debug("New {} has been created", this.getClass().getSimpleName());
     }
 
     @Override
     public boolean isWriteable(Class<?> aClass, Type type, Annotation[] annotations, MediaType mediaType) {
-        boolean result = aClass.equals(User.class);
-        LOG.debug("isWriteAble called {}", Boolean.valueOf(result));
+        boolean result = Collection.class.isAssignableFrom(aClass);
+        LOG.debug("isWriteAble called for class {}, type {}. Result is {}", aClass, type,  Boolean.valueOf(result));
         return result;
     }
 
     @Override
-    public long getSize(User user, Class<?> aClass, Type type, Annotation[] annotations, MediaType mediaType) {
-        LOG.debug("getSize called");
+    public long getSize(Collection<?> user, Class<?> aClass, Type type, Annotation[] annotations, MediaType mediaType) {
+        LOG.debug("UserMessageBodyWriter getSize called");
         return -1;
     }
 
     @Override
-    public void writeTo(User user, Class<?> aClass, Type type, Annotation[] annotations, MediaType mediaType, MultivaluedMap<String, Object> multivaluedMap, OutputStream outputStream) throws IOException, WebApplicationException {
+    public void writeTo(Collection<?> user, Class<?> aClass, Type type, Annotation[] annotations, MediaType mediaType, MultivaluedMap<String, Object> multivaluedMap, OutputStream outputStream) throws IOException, WebApplicationException {
         LOG.debug("Message body writeTo readFrom has been invoked: class {}, type {}, annotations {}, mediaType {}, multyValuedMap {}", aClass, type, annotations, mediaType, multivaluedMap);
         try (JsonGenerator jsonGenerator = objectMapper.getJsonFactory().createJsonGenerator(outputStream, JsonEncoding.UTF8)) {
             jsonGenerator.writeObject(user);
