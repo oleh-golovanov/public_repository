@@ -1,9 +1,18 @@
 package com.adidas.poc.neo4jext.domain;
 
+
+import javax.xml.bind.annotation.XmlAccessType;
+import javax.xml.bind.annotation.XmlAccessorType;
+import javax.xml.bind.annotation.XmlRootElement;
+import java.io.Serializable;
+
 /**
  * Created by Oleh_Golovanov on 4/7/2015 for ADI-COM-trunk
  */
-public class User {
+//@JsonXML
+@XmlRootElement
+//@XmlAccessorType(XmlAccessType.FIELD)
+public class User implements Serializable{
     private long id;
     private String firstName;
     private String secondName;
