@@ -12,6 +12,7 @@ import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.MultivaluedMap;
 import javax.ws.rs.ext.MessageBodyWriter;
+import javax.ws.rs.ext.Provider;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.lang.annotation.Annotation;
@@ -20,7 +21,7 @@ import java.lang.reflect.Type;
 /**
  * Created by Oleh_Golovanov on 4/8/2015 for ADI-COM-trunk
  */
-//@Provider
+@Provider
 @Produces(MediaType.APPLICATION_JSON)
 public class UserMessageBodyWriter implements MessageBodyWriter<User> {
     private static final Logger LOG = LoggerFactory.getLogger(UserMessageBodyWriter.class);

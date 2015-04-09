@@ -26,6 +26,7 @@ public class UserResource {
     private UserService userService;
 
     public UserResource(@Context GraphDatabaseService graphDatabaseService) {
+        LOG.debug("Creating UserResource");
         this.userService = new UserService(graphDatabaseService);
     }
 
@@ -41,6 +42,7 @@ public class UserResource {
                 createdUser = userService.createUser(user);
         }
         Serializable rEntity = createdUser == null ? String.format("User with email %s already exists", email) : createdUser;
+        LOG.debug("Result of user creation {}" , rEntity);
         return Response.ok(rEntity).build();
 
     }
@@ -57,7 +59,7 @@ public class UserResource {
     public Response findUser(@PathParam("email") String email) {
         LOG.debug("findUser rest method has been invoked");
         User user = userService.findUser(email);
-        String respMessage = user == null ? String.format("User with email %s doesn't exists", email) : user.toString();
+        Serializable respMessage = user == null ? String.format("User with email %s doesn't exists", email) : user;
         return Response.ok(respMessage).build();
     }
 
@@ -66,7 +68,10 @@ public class UserResource {
     public Response findAllUsers() {
         LOG.debug("findAllUsers rest method has been invoked");
         Collection<User> users = userService.findAllUsers();
-        return Response.ok(users).build();
+        LOG.debug("findAllUsers users {}", users);
+        Response response = Response.ok(users).build();
+        LOG.debug("findAllUsers rest method response {}", response);
+        return response;
     }
 
     @DELETE
