@@ -77,11 +77,9 @@ public class UserResource {
     @DELETE
     @Path("/{email}")
     public Response deleteUser(@PathParam("email") String email) {
-        boolean userExists = userService.checkIsUserExists(email);
-        if (userExists) {
-            userService.deleteUser(email);
-        }
-        String respMessage = String.format("User with email %s %s", email, !userExists ? "doesn't exist" : "has been deleted");
+        LOG.debug("delete rest method has been invoked");
+        User deleted =  userService.deleteUser(email);
+        String respMessage = String.format("User with email %s %s", email, deleted == null ? "doesn't exist" : "has been deleted");
         return Response.ok(respMessage).build();
     }
 
