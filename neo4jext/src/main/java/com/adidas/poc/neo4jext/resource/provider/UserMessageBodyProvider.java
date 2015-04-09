@@ -58,7 +58,7 @@ public class UserMessageBodyProvider implements MessageBodyReader<User>, Message
     @Override
     public boolean isWriteable(Class<?> aClass, Type type, Annotation[] annotations, MediaType mediaType) {
         boolean result = aClass.equals(User.class);
-        LOG.debug("isWriteAble called for class {}, type {}. Result is {}", aClass, type,  Boolean.valueOf(result));
+        LOG.debug("isWriteAble called for class {}, type {}. Result is {}", aClass, type,  result);
         return result;
     }
 

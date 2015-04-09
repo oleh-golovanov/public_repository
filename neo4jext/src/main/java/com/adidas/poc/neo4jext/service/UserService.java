@@ -19,17 +19,9 @@ public class UserService {
     private AtomicLong idHolder;
 
     public UserService(GraphDatabaseService graphDatabaseService) {
-        LOG.debug("UserService constructor has been triggered");
         this.graphDatabaseService = graphDatabaseService;
-        LOG.debug("Starting to init userDao");
         userDao = new UserDao(this.graphDatabaseService);
-        LOG.debug("Starting to init id holder");
-        try {
-            initIdHolder();
-        } catch (Exception e) {
-            LOG.error("Error", e);
-        }
-        LOG.debug("Finish to init id holder {}", idHolder);
+        initIdHolder();
     }
 
     public User createUser(User newUser) {

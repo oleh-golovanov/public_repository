@@ -1,6 +1,5 @@
 package com.adidas.poc.neo4jext.resource.provider;
 
-import com.adidas.poc.neo4jext.domain.User;
 import org.codehaus.jackson.JsonEncoding;
 import org.codehaus.jackson.JsonGenerator;
 import org.codehaus.jackson.map.ObjectMapper;
@@ -36,7 +35,7 @@ public class UserCollectionMessageBodyWriter implements MessageBodyWriter<Collec
     @Override
     public boolean isWriteable(Class<?> aClass, Type type, Annotation[] annotations, MediaType mediaType) {
         boolean result = Collection.class.isAssignableFrom(aClass);
-        LOG.debug("isWriteAble called for class {}, type {}. Result is {}", aClass, type,  Boolean.valueOf(result));
+        LOG.debug("isWriteAble called for class {}, type {}. Result is {}", aClass, type, result);
         return result;
     }
 
