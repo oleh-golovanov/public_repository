@@ -1,7 +1,0 @@
-# Input
-data.input:
-  unprocessed.folder: d:/tmp/udi/unprocessed
-  processed.folder: d:/tmp/udi/processed
-
-# Output
-neo4j.url: http://localhost:7474/poc/unmanaged/user
