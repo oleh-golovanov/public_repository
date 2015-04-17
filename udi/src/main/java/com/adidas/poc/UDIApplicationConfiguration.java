@@ -1,22 +1,26 @@
 package com.adidas.poc;
 
+import com.adidas.poc.components.FileMoveHandler;
 import com.adidas.poc.dto.UserDTO;
-import com.adidas.poc.intelements.CSVToCollectionTransformer;
-import com.adidas.poc.intelements.Neo4JHandler;
+import com.adidas.poc.components.CSVToCollectionTransformer;
+import com.adidas.poc.components.Neo4JHandler;
 import org.aopalliance.aop.Advice;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
+import org.springframework.core.task.SimpleAsyncTaskExecutor;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.integration.annotation.IntegrationComponentScan;
-import org.springframework.integration.channel.DirectChannel;
 import org.springframework.integration.config.EnableIntegration;
 import org.springframework.integration.context.IntegrationContextUtils;
 import org.springframework.integration.core.MessageSource;
 import org.springframework.integration.dsl.IntegrationFlow;
 import org.springframework.integration.dsl.IntegrationFlows;
+import org.springframework.integration.dsl.channel.MessageChannels;
 import org.springframework.integration.dsl.core.Pollers;
+import org.springframework.integration.dsl.support.GenericHandler;
 import org.springframework.integration.file.FileReadingMessageSource;
 import org.springframework.integration.handler.advice.RequestHandlerRetryAdvice;
 import org.springframework.integration.store.MessageStore;
@@ -27,18 +31,14 @@ import org.springframework.integration.transformer.GenericTransformer;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.MessageChannel;
 import org.springframework.messaging.MessageHeaders;
+import org.springframework.retry.backoff.FixedBackOffPolicy;
 import org.springframework.retry.policy.SimpleRetryPolicy;
 import org.springframework.retry.support.RetryTemplate;
 import org.springframework.web.client.RestTemplate;
 
 import java.io.File;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.nio.file.StandardCopyOption;
 import java.util.Collection;
-import java.util.Map;
 
 import static org.springframework.integration.dsl.IntegrationFlows.from;
 
@@ -48,10 +48,11 @@ import static org.springframework.integration.dsl.IntegrationFlows.from;
 @SpringBootApplication
 @EnableIntegration
 @IntegrationComponentScan
-public class ApplicationConfiguration {
-    private static final Logger LOG = LoggerFactory.getLogger(ApplicationConfiguration.class);
-    public static final int RETRY_ATTEMPTS = 3;
+public class UDIApplicationConfiguration {
+    private static final Logger LOG = LoggerFactory.getLogger(UDIApplicationConfiguration.class);
+    public static final int RETRY_ATTEMPTS = 5;
     public static final String FAIL_HEADER = "FAIL_HEADER";
+    public static final int BACK_OFF_PERIOD = 5000;
 
 
     @Value("${data.input.unprocessed.folder}")
@@ -67,37 +68,27 @@ public class ApplicationConfiguration {
     @Bean
     public IntegrationFlow mainFlow() {
         return IntegrationFlows.from(fileReadingMessageSource(), c -> c.poller(Pollers.fixedRate(1000)))
-                //.transform((file)->{return messageBuilderFactory().withPayload(file).setHeader("destinationURL", destinationURL).build();})
                 .transform(csvToListTransformer())
                 .split()
-                .handle((input, map)->{LOG.info("Splitted item {}", input); return input;})
+                .channel(asyncChannel())
+                .handle((input, map) -> {
+                    LOG.info("Split item {}", input);
+                    return input;
+                })
                 .handle(neo4JHandler(), endpSpec -> endpSpec.advice(retryAdvice()))
                 .handle((in, m) -> {
                     Object failHeader = m.get(FAIL_HEADER);
-                    LOG.info("Processed item {}", in);
+                    LOG.info("Processed item {}, failHeader {}", in, failHeader);
                     return in;
                 })
                 .aggregate()
-                .handle((Object input, Map<String, Object> map) -> {
-                    Object failHeader = map.get(FAIL_HEADER);
-                    if(failHeader != null){
-                        LOG.error("One or more items failed to be written. Skip moving.");
-                    } else {
-                        String fileToMove = map.get("processed_file").toString();
-                        LOG.info("Aggregated input {}", input);
-                        LOG.info("File to be moved {}", fileToMove);
-                        Path sourceFilePath = Paths.get(fileToMove);
-                        String fileName = sourceFilePath.getFileName().toString();
-                        try {
-                            Files.move(sourceFilePath, Paths.get(processedDirectory, fileName), StandardCopyOption.REPLACE_EXISTING);
-                        } catch (IOException e) {
-                            LOG.error("Unable to move procesed file", e);
-                        }
-                    }
-                    return input;
-                })
+                .handle(fileMoveHandler())
                 .channel(IntegrationContextUtils.NULL_CHANNEL_BEAN_NAME)
                 .get();
+    }
+
+    private GenericHandler<Collection<UserDTO>> fileMoveHandler() {
+        return new FileMoveHandler(processedDirectory);
     }
 
     @Bean
@@ -106,7 +97,12 @@ public class ApplicationConfiguration {
 
         SimpleRetryPolicy simpleRetryPolicy = new SimpleRetryPolicy();
         simpleRetryPolicy.setMaxAttempts(RETRY_ATTEMPTS);
+
+        FixedBackOffPolicy backOffPolicy = new FixedBackOffPolicy();
+        backOffPolicy.setBackOffPeriod(BACK_OFF_PERIOD);
+
         RetryTemplate  retryTemplate = new RetryTemplate();
+        retryTemplate.setBackOffPolicy(backOffPolicy);
         retryTemplate.setRetryPolicy(simpleRetryPolicy);
         requestHandlerRetryAdvice.setRecoveryCallback((retryCtx)->{LOG.info("Invoked from recovery callback {}", retryCtx); return  messageBuilderFactory().withPayload(new UserDTO()).setHeader(FAIL_HEADER, Boolean.TRUE).build();});
 
@@ -134,7 +130,12 @@ public class ApplicationConfiguration {
 
     @Bean
     public RestTemplate restTemplate() {
-        return new RestTemplate();
+        RestTemplate restTemplate = new RestTemplate();
+        SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
+        requestFactory.setConnectTimeout(5000);
+        requestFactory.setReadTimeout(5000);
+        restTemplate.setRequestFactory(requestFactory);
+        return restTemplate;
     }
 
     @Bean
@@ -143,8 +144,10 @@ public class ApplicationConfiguration {
     }
 
     @Bean
-    public MessageChannel outChannel() {
-        return new DirectChannel();
+    public MessageChannel asyncChannel() {
+        SimpleAsyncTaskExecutor executor = new SimpleAsyncTaskExecutor();
+        executor.setConcurrencyLimit(2);
+        return MessageChannels.executor(executor).get();
     }
 
     @Bean

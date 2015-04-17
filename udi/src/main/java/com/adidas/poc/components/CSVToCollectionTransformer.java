@@ -1,4 +1,4 @@
-package com.adidas.poc.intelements;
+package com.adidas.poc.components;
 
 import com.adidas.poc.dto.UserDTO;
 import org.apache.commons.csv.CSVFormat;

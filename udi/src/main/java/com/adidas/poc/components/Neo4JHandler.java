@@ -1,4 +1,4 @@
-package com.adidas.poc.intelements;
+package com.adidas.poc.components;
 
 import com.adidas.poc.dto.UserDTO;
 import org.slf4j.Logger;
@@ -8,15 +8,11 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.integration.dsl.support.GenericHandler;
-import org.springframework.integration.support.DefaultMessageBuilderFactory;
-import org.springframework.integration.support.MessageBuilderFactory;
-import org.springframework.messaging.Message;
 import org.springframework.web.client.RestTemplate;
 
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.Map;
-import java.util.concurrent.Exchanger;
 
 /**
  * Created by Oleh_Golovanov on 4/13/2015 for ADI-COM-trunk
