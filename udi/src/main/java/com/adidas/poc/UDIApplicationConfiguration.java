@@ -1,9 +1,11 @@
 package com.adidas.poc;
 
-import com.adidas.poc.components.FileMoveHandler;
-import com.adidas.poc.dto.UserDTO;
-import com.adidas.poc.components.CSVToCollectionTransformer;
-import com.adidas.poc.components.Neo4JHandler;
+import static org.springframework.integration.dsl.IntegrationFlows.from;
+
+import java.io.File;
+import java.nio.file.Paths;
+import java.util.Collection;
+
 import org.aopalliance.aop.Advice;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -18,11 +20,13 @@ import org.springframework.integration.context.IntegrationContextUtils;
 import org.springframework.integration.core.MessageSource;
 import org.springframework.integration.dsl.IntegrationFlow;
 import org.springframework.integration.dsl.IntegrationFlows;
+import org.springframework.integration.dsl.RouterSpec;
 import org.springframework.integration.dsl.channel.MessageChannels;
 import org.springframework.integration.dsl.core.Pollers;
 import org.springframework.integration.dsl.support.GenericHandler;
 import org.springframework.integration.file.FileReadingMessageSource;
 import org.springframework.integration.handler.advice.RequestHandlerRetryAdvice;
+import org.springframework.integration.router.MethodInvokingRouter;
 import org.springframework.integration.store.MessageStore;
 import org.springframework.integration.store.SimpleMessageStore;
 import org.springframework.integration.support.DefaultMessageBuilderFactory;
@@ -36,11 +40,10 @@ import org.springframework.retry.policy.SimpleRetryPolicy;
 import org.springframework.retry.support.RetryTemplate;
 import org.springframework.web.client.RestTemplate;
 
-import java.io.File;
-import java.nio.file.Paths;
-import java.util.Collection;
-
-import static org.springframework.integration.dsl.IntegrationFlows.from;
+import com.adidas.poc.components.CSVToCollectionTransformer;
+import com.adidas.poc.components.FileMoveHandler;
+import com.adidas.poc.components.Neo4JHandler;
+import com.adidas.poc.dto.UserDTO;
 
 /**
  * Created by Oleh_Golovanov on 4/9/2015 for ADI-COM-trunk
@@ -53,6 +56,11 @@ public class UDIApplicationConfiguration {
     public static final int RETRY_ATTEMPTS = 5;
     public static final String FAIL_HEADER = "FAIL_HEADER";
     public static final int BACK_OFF_PERIOD = 5000;
+    public static final String PROCESSED_CHANNEL = "processedChannel";
+    public static final String UNPROCESSED_FAILED_CHANNEL = "unprocessed_FAILED_channel";
+
+
+    public static final String PROCESSED_FILE_HEADER = "processed_file";
 
 
     @Value("${data.input.unprocessed.folder}")
@@ -67,7 +75,8 @@ public class UDIApplicationConfiguration {
 
     @Bean
     public IntegrationFlow mainFlow() {
-        return IntegrationFlows.from(fileReadingMessageSource(), c -> c.poller(Pollers.fixedRate(1000)))
+        return IntegrationFlows
+                .from(fileReadingMessageSource(), c -> c.poller(Pollers.fixedRate(1000)))
                 .transform(csvToListTransformer())
                 .split()
                 .channel(asyncChannel())
@@ -82,9 +91,30 @@ public class UDIApplicationConfiguration {
                     return in;
                 })
                 .aggregate()
+                //.handle((p, h)->{Object failHeader = h.get(FAIL_HEADER);})
+                .routeToRecipients(
+                        (r) -> {
+                            r.recipient(processdChannel(),m -> m.getHeaders().get(FAIL_HEADER) == null)
+                                    .recipient(unprocessedChannel(), m -> m.getHeaders().get(FAIL_HEADER) != null).get();
+                        })
+                .get();
+    }
+
+
+    @Bean
+    public IntegrationFlow successProcessedFlow() {
+        return IntegrationFlows.from(processdChannel())
                 .handle(fileMoveHandler())
                 .channel(IntegrationContextUtils.NULL_CHANNEL_BEAN_NAME)
                 .get();
+    }
+
+    @Bean
+    public IntegrationFlow failedProcessedFlow() {
+        return IntegrationFlows.from(unprocessedChannel()).handle((payload, headers) -> {
+            LOG.info("The {} file will not be moved due to some exceptions", headers.get(PROCESSED_FILE_HEADER));
+            return payload;
+        }).channel(IntegrationContextUtils.NULL_CHANNEL_BEAN_NAME).get();
     }
 
     private GenericHandler<Collection<UserDTO>> fileMoveHandler() {
@@ -101,10 +131,14 @@ public class UDIApplicationConfiguration {
         FixedBackOffPolicy backOffPolicy = new FixedBackOffPolicy();
         backOffPolicy.setBackOffPeriod(BACK_OFF_PERIOD);
 
-        RetryTemplate  retryTemplate = new RetryTemplate();
+        RetryTemplate retryTemplate = new RetryTemplate();
         retryTemplate.setBackOffPolicy(backOffPolicy);
         retryTemplate.setRetryPolicy(simpleRetryPolicy);
-        requestHandlerRetryAdvice.setRecoveryCallback((retryCtx)->{LOG.info("Invoked from recovery callback {}", retryCtx); return  messageBuilderFactory().withPayload(new UserDTO()).setHeader(FAIL_HEADER, Boolean.TRUE).build();});
+        requestHandlerRetryAdvice.setRecoveryCallback((retryCtx) -> {
+            LOG.info("Invoked from recovery callback {}", retryCtx);
+            return messageBuilderFactory().withPayload(new UserDTO())
+                    .setHeader(FAIL_HEADER, Boolean.TRUE).build();
+        });
 
         requestHandlerRetryAdvice.setRetryTemplate(retryTemplate);
 
@@ -112,13 +146,13 @@ public class UDIApplicationConfiguration {
     }
 
     @Bean
-    public MessageBuilderFactory messageBuilderFactory(){
-        return  new DefaultMessageBuilderFactory();
+    public MessageBuilderFactory messageBuilderFactory() {
+        return new DefaultMessageBuilderFactory();
     }
 
 
     @Bean
-    public MessageStore messageStore(){
+    public MessageStore messageStore() {
         return new SimpleMessageStore();
     }
 
@@ -139,8 +173,18 @@ public class UDIApplicationConfiguration {
     }
 
     @Bean
-    public Neo4JHandler neo4JHandler(){
-        return  new Neo4JHandler(restTemplate(), destinationURL);
+    public Neo4JHandler neo4JHandler() {
+        return new Neo4JHandler(restTemplate(), destinationURL);
+    }
+
+    @Bean
+    public MessageChannel processdChannel() {
+        return MessageChannels.direct(PROCESSED_CHANNEL).get();
+    }
+
+    @Bean
+    public MessageChannel unprocessedChannel() {
+        return MessageChannels.direct(UNPROCESSED_FAILED_CHANNEL).get();
     }
 
     @Bean
@@ -180,8 +224,7 @@ public class UDIApplicationConfiguration {
 
     @Bean
     public IntegrationFlow errorHadlerFlow() {
-        return from(IntegrationContextUtils.ERROR_CHANNEL_BEAN_NAME)
-                .handle(m -> System.out.println("ERROR HADLER FLOW\r\n" + m.getPayload()))
-                .get();
+        return from(IntegrationContextUtils.ERROR_CHANNEL_BEAN_NAME).handle(
+                m -> System.out.println("ERROR HADLER FLOW\r\n" + m.getPayload())).get();
     }
 }

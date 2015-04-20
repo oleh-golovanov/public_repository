@@ -1,5 +1,6 @@
 package com.adidas.poc.components;
 
+import com.adidas.poc.UDIApplicationConfiguration;
 import com.adidas.poc.dto.UserDTO;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVParser;
@@ -23,6 +24,7 @@ public class CSVToCollectionTransformer implements GenericTransformer<File, Mess
     public static final String SECOND_NAME = "Second Name";
     public static final String EMAIL = "Email";
     public static final String NICK = "Nick";
+
     MessageBuilderFactory messageBuilderFactory;
 
     public CSVToCollectionTransformer(MessageBuilderFactory messageBuilderFactory) {
@@ -47,7 +49,7 @@ public class CSVToCollectionTransformer implements GenericTransformer<File, Mess
             LOG.error("Exception happens during parsing SCV file ", e);
         }
         LOG.info("Transformation of file {} has been finished. Processed {} items", file, userDTOs.size());
-        return messageBuilderFactory.withPayload(userDTOs).setHeader("processed_file", file.getAbsolutePath()).build();
+        return messageBuilderFactory.withPayload(userDTOs).setHeader(UDIApplicationConfiguration.PROCESSED_FILE_HEADER, file.getAbsolutePath()).build();
     }
 
     private UserDTO mapToUserDTO(CSVRecord record) {
