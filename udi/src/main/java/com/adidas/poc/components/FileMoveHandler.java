@@ -5,6 +5,7 @@ import com.adidas.poc.dto.UserDTO;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.integration.dsl.support.GenericHandler;
+import org.springframework.messaging.Message;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -17,7 +18,7 @@ import java.util.Map;
 /**
  * Created by Oleh_Golovanov on 4/17/2015
  */
-public class FileMoveHandler implements GenericHandler<Collection<UserDTO>> {
+public class FileMoveHandler implements GenericHandler<Message<?>> {
     private static final Logger LOG = LoggerFactory.getLogger(FileMoveHandler.class);
     private String processedDirectory;
 
@@ -26,7 +27,7 @@ public class FileMoveHandler implements GenericHandler<Collection<UserDTO>> {
     }
 
     @Override
-    public Object handle(Collection<UserDTO> payload, Map<String, Object> headers) {
+    public Object handle(Message<?> payload, Map<String, Object> headers) {
         Object failHeader = headers.get(UDIApplicationConfiguration.FAIL_HEADER);
         if (failHeader != null) {
             LOG.warn("One or more items failed to be written. Skip moving.");

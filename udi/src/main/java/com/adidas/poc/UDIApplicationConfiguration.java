@@ -117,7 +117,7 @@ public class UDIApplicationConfiguration {
         }).channel(IntegrationContextUtils.NULL_CHANNEL_BEAN_NAME).get();
     }
 
-    private GenericHandler<Collection<UserDTO>> fileMoveHandler() {
+    private GenericHandler<Message<?>> fileMoveHandler() {
         return new FileMoveHandler(processedDirectory);
     }
 
@@ -136,7 +136,7 @@ public class UDIApplicationConfiguration {
         retryTemplate.setRetryPolicy(simpleRetryPolicy);
         requestHandlerRetryAdvice.setRecoveryCallback((retryCtx) -> {
             LOG.info("Invoked from recovery callback {}", retryCtx);
-            return messageBuilderFactory().withPayload(new UserDTO())
+            return messageBuilderFactory().withPayload(Boolean.FALSE)
                     .setHeader(FAIL_HEADER, Boolean.TRUE).build();
         });
 
