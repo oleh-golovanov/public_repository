@@ -3,10 +3,9 @@ package com.adidas.poc.components;
 import com.adidas.poc.dto.UserDTO;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpMethod;
-import org.springframework.http.MediaType;
+import org.springframework.core.convert.support.DefaultConversionService;
+import org.springframework.http.*;
+import org.springframework.http.converter.ObjectToStringHttpMessageConverter;
 import org.springframework.integration.dsl.support.GenericHandler;
 import org.springframework.web.client.RestTemplate;
 
@@ -40,7 +39,13 @@ public class Neo4JHandler implements GenericHandler<UserDTO>{
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
             HttpEntity<UserDTO> entity = new HttpEntity<>(userDto, headers);
-            restTemplate.exchange(new URI(destinationURL), HttpMethod.POST, entity, String.class);
+            restTemplate.getMessageConverters().add(new ObjectToStringHttpMessageConverter(new DefaultConversionService()));
+            ResponseEntity<Object> response = restTemplate.exchange(new URI(destinationURL), HttpMethod.POST, entity, Object.class);
+            if(response.getBody() instanceof String){
+                LOG.info("Entity with email {} has not been added. Reason {}", userDto.getEmail(), response);
+            } else {
+                LOG.info("Entity with email {} has been added. It's id {}", userDto.getEmail(), userDto.getId());
+            }
         } catch (URISyntaxException e) {
             LOG.error("URI syntax error", e);
         }
