@@ -17,7 +17,7 @@ import java.util.Collection;
  * Created by Oleh_Golovanov on 4/7/2015 for ADI-COM-trunk
  */
 @Path("/user")
-@Produces(MediaType.APPLICATION_JSON)
+@Produces({MediaType.APPLICATION_JSON, MediaType.TEXT_PLAIN})
 @Consumes(MediaType.APPLICATION_JSON)
 public class UserResource {
 
@@ -42,13 +42,14 @@ public class UserResource {
                 createdUser = userService.createUser(user);
         }
         Serializable rEntity = createdUser == null ? String.format("User with email %s already exists", email) : createdUser;
-        LOG.debug("Result of user creation {}" , rEntity);
-        return Response.ok(rEntity).build();
+        LOG.debug("Result of user creation {}", rEntity);
+        return Response.ok(rEntity, getResponseMediaType(createdUser)).build();
 
     }
 
     @GET
     @Path("/check/{email}")
+    @Produces(MediaType.TEXT_PLAIN)
     public Response userExists(@PathParam("email") String email) {
         LOG.debug("userExists rest method has been invoked");
         String respMessage = String.format("User with email %s %s exists", email, (userService.checkIsUserExists(email) ? "already " : "doesn't "));
@@ -61,7 +62,7 @@ public class UserResource {
         LOG.debug("findUser rest method has been invoked");
         User user = userService.findUser(email);
         Serializable respMessage = user == null ? String.format("User with email %s doesn't exists", email) : user;
-        return Response.ok(respMessage).build();
+        return Response.ok(respMessage, getResponseMediaType(user)).build();
     }
 
     @GET
@@ -81,7 +82,11 @@ public class UserResource {
         LOG.debug("delete rest method has been invoked");
         User deleted =  userService.deleteUser(email);
         String respMessage = String.format("User with email %s %s", email, deleted == null ? "doesn't exist" : "has been deleted");
-        return Response.ok(respMessage).build();
+        return Response.ok(respMessage, getResponseMediaType(deleted)).build();
+    }
+
+    private String getResponseMediaType(User user) {
+        return user == null ? MediaType.TEXT_PLAIN : MediaType.APPLICATION_JSON;
     }
 
 
